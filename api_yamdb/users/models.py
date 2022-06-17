@@ -1,4 +1,4 @@
-from django.contrib.auth.models import AbstractUser, BaseUserManager
+from django.contrib.auth.models import AbstractUser
 from django.db import models
 
 
@@ -24,7 +24,8 @@ class User(AbstractUser):
     )
     confirmation_code = models.CharField(
         max_length=8,
-        verbose_name='Код подтверждения'
+        verbose_name='Код подтверждения',
+        blank=True
     )
 
     def __str__(self):
