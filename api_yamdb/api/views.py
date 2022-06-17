@@ -49,25 +49,29 @@ def signup(request):
     if serializer.is_valid():
         email = serializer.validated_data['email']
         username = serializer.validated_data['username']
-        if User.objects.filter(email__iexact=email).exists():
+        if (User.objects.filter(email__iexact=email).
+                exclude(confirmation_code__exact='').exists()):
             return Response('Этот адрес электронной почты уже используются',
                             status=status.HTTP_400_BAD_REQUEST)
-        if User.objects.filter(username__iexact=username).exists():
+        if (User.objects.filter(username__iexact=username).
+                exclude(confirmation_code__exact='').exists()):
             return Response('Это имя пользователя уже используются',
                             status=status.HTTP_400_BAD_REQUEST)
-        User.objects.create(
+        user, created = User.objects.get_or_create(
             username=username,
-            email=email,
-            confirmation_code=confirmation_code
+            email=email
         )
-        send_mail(
-            'Код подтверждения YaMDb',
-            f'Ваш код подтверждения: {confirmation_code}',
-            'signup@yamdb.com',
-            [email],
-            fail_silently=False
-        )
-        return Response(serializer.data, status=status.HTTP_200_OK)
+        user.confirmation_code = confirmation_code
+        user.save()
+        if created or user.confirmation_code is not None:
+            send_mail(
+                'Код подтверждения YaMDb',
+                f'Ваш код подтверждения: {confirmation_code}',
+                'signup@yamdb.com',
+                [email],
+                fail_silently=False
+            )
+            return Response(serializer.data, status=status.HTTP_200_OK)
     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
