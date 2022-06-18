@@ -2,18 +2,21 @@ import random
 
 from django.core.mail import send_mail
 from django.shortcuts import get_object_or_404
+
 from rest_framework import filters, status, viewsets
 from rest_framework.decorators import action, api_view
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework_simplejwt.tokens import RefreshToken
 
+from reviews.models import Categories, Genres, Titles
+from .mixins import ListCreateDestroyViewSet
 from users.models import User
-from api.permissions import IsAdmin
-from api.serializers import (ProfileSerializer,
-                             UserSerializer,
-                             SignupSerializer,
-                             TokenSerializer)
+from .permissions import IsAdmin
+from .serializers import (ProfileSerializer, UserSerializer,
+                          SignupSerializer, TokenSerializer,
+                          CategoriesSerializer)
+                          
 
 
 class UserViewSet(viewsets.ModelViewSet):
@@ -82,3 +85,15 @@ def token(request):
                 status=status.HTTP_201_CREATED
             )
     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+class CategoriesViewSet(ListCreateDestroyViewSet):
+    queryset = Categories.objects.all()
+    serializer_class = CategoriesSerializer
+    filter_backends = (filters.SearchFilter,)
+    search_fields = ('name',)
+
+    def perform_destroy(self, instance):
+        slug = self.kwargs.get('slug')
+        instance = self.get_object(slug=slug)
+        super().perform_destroy(instance)
