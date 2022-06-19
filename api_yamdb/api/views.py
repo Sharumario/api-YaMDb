@@ -37,7 +37,7 @@ class UserViewSet(viewsets.ModelViewSet):
             if serializer.is_valid():
                 serializer.save()
                 return Response(serializer.data)
-            return Response(serializer.data,
+            return Response(serializer.errors,
                             status=status.HTTP_400_BAD_REQUEST)
         serializer = ProfileSerializer(user)
         return Response(serializer.data)
@@ -64,7 +64,6 @@ def signup(request):
         )
         user.confirmation_code = confirmation_code
         user.save()
-        # if created or user.confirmation_code is not None:
         send_mail(
             'Код подтверждения YaMDb',
             f'Ваш код подтверждения: {confirmation_code}',
