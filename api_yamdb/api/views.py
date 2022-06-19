@@ -2,25 +2,33 @@ import random
 
 from django.core.mail import send_mail
 from django.shortcuts import get_object_or_404
-from rest_framework import filters, status, viewsets
+
+from rest_framework import status
 from rest_framework.decorators import action, api_view
+from rest_framework.filters import SearchFilter
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework_simplejwt.tokens import RefreshToken
+from rest_framework.viewsets import ModelViewSet
 
+from api.permissions import IsAdmin, OwnerOrReadOnly
+from api.serializers import (
+    CommentSerializer,
+    ProfileSerializer,
+    ReviewSerializer,
+    SignupSerializer,
+    TokenSerializer,
+    UserSerializer
+)
+from reviews.models import Review, Title
 from users.models import User
-from api.permissions import IsAdmin
-from api.serializers import (ProfileSerializer,
-                             UserSerializer,
-                             SignupSerializer,
-                             TokenSerializer)
 
 
-class UserViewSet(viewsets.ModelViewSet):
+class UserViewSet(ModelViewSet):
     queryset = User.objects.all()
     serializer_class = UserSerializer
     permission_classes = (IsAuthenticated, IsAdmin)
-    filter_backends = (filters.SearchFilter,)
+    filter_backends = (SearchFilter,)
     search_fields = ('username',)
     lookup_field = 'username'
 
@@ -28,9 +36,6 @@ class UserViewSet(viewsets.ModelViewSet):
             permission_classes=(IsAuthenticated,))
     def profile(self, request):
         user = get_object_or_404(User, username=self.request.user)
-        if request.method == 'GET':
-            serializer = ProfileSerializer(user)
-            return Response(serializer.data, status=status.HTTP_200_OK)
         if request.method == 'PATCH':
             serializer = ProfileSerializer(
                 user,
@@ -40,6 +45,10 @@ class UserViewSet(viewsets.ModelViewSet):
             if serializer.is_valid():
                 serializer.save()
                 return Response(serializer.data, status=status.HTTP_200_OK)
+            return Response(serializer.data,
+                            status=status.HTTP_400_BAD_REQUEST)
+        serializer = ProfileSerializer(user)
+        return Response(serializer.data, status=status.HTTP_200_OK)
 
 
 @api_view(['POST'])
@@ -86,3 +95,32 @@ def token(request):
                 status=status.HTTP_201_CREATED
             )
     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+class ReviewViewSet(ModelViewSet):
+    """Вьюсет для отзывов на произведения."""
+    serializer_class = ReviewSerializer
+    permission_classes = OwnerOrReadOnly
+    filter_backends = (SearchFilter,)
+    search_fields = ('text',)
+
+    def get_queryset(self):
+        title = get_object_or_404(Title, id=self.kwargs.get('title_id'))
+        return Review.objects.filter(title=title.id)
+
+    def perform_create(self, serializer):
+        title = get_object_or_404(Title, id=self.kwargs.get('title_id'))
+        serializer.save(author=self.request.user, title=title)
+
+
+class CommentViewSet(ReviewViewSet):
+    """Вьюсет для комментриев к отзыву."""
+    serializer_class = CommentSerializer
+
+    def get_queryset(self):
+        review = get_object_or_404(Review, id=self.kwargs.get('review_id'))
+        return Review.objects.filter(review=review.id)
+
+    def perform_create(self, serializer):
+        review = get_object_or_404(Review, id=self.kwargs.get('review_id'))
+        serializer.save(author=self.request.user, review=review)
