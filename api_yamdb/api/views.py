@@ -28,9 +28,6 @@ class UserViewSet(viewsets.ModelViewSet):
             permission_classes=(IsAuthenticated,))
     def profile(self, request):
         user = get_object_or_404(User, username=self.request.user)
-        if request.method == 'GET':
-            serializer = ProfileSerializer(user)
-            return Response(serializer.data, status=status.HTTP_200_OK)
         if request.method == 'PATCH':
             serializer = ProfileSerializer(
                 user,
@@ -40,6 +37,10 @@ class UserViewSet(viewsets.ModelViewSet):
             if serializer.is_valid():
                 serializer.save()
                 return Response(serializer.data, status=status.HTTP_200_OK)
+            return Response(serializer.data,
+                            status=status.HTTP_400_BAD_REQUEST)
+        serializer = ProfileSerializer(user)
+        return Response(serializer.data, status=status.HTTP_200_OK)
 
 
 @api_view(['POST'])
@@ -57,21 +58,21 @@ def signup(request):
                 exclude(confirmation_code__exact='').exists()):
             return Response('Это имя пользователя уже используются',
                             status=status.HTTP_400_BAD_REQUEST)
-        user, created = User.objects.get_or_create(
+        user, _ = User.objects.get_or_create(
             username=username,
             email=email
         )
         user.confirmation_code = confirmation_code
         user.save()
-        if created or user.confirmation_code is not None:
-            send_mail(
-                'Код подтверждения YaMDb',
-                f'Ваш код подтверждения: {confirmation_code}',
-                'signup@yamdb.com',
-                [email],
-                fail_silently=False
-            )
-            return Response(serializer.data, status=status.HTTP_200_OK)
+        # if created or user.confirmation_code is not None:
+        send_mail(
+            'Код подтверждения YaMDb',
+            f'Ваш код подтверждения: {confirmation_code}',
+            'signup@yamdb.com',
+            [email],
+            fail_silently=False
+        )
+        return Response(serializer.data, status=status.HTTP_200_OK)
     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
