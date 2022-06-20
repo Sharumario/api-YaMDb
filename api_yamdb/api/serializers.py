@@ -1,6 +1,9 @@
+import datetime as dt
+
 from rest_framework import serializers
 
 from users.models import User
+from reviews.models import Categories, Genres, Titles, GenreTitle
 
 
 class ProfileSerializer(serializers.ModelSerializer):
@@ -42,3 +45,56 @@ class UserSerializer(serializers.ModelSerializer):
         fields = ('username', 'email',
                   'first_name', 'last_name',
                   'bio', 'role')
+
+
+class CategoriesSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = Categories
+        fields = ('name', 'slug')
+        lookup_field = 'slug'
+
+
+class GenreSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = Genres
+        fields = ('name', 'slug')
+        lookup_field = 'slug'
+
+
+class TitleSerializer(serializers.ModelSerializer):
+    category = serializers.SlugRelatedField(
+        slug_field='slug',
+        queryset=Categories.objects.all()
+    )
+    genre = GenreSerializer(many=True)
+
+    class Meta:
+        model = Titles
+        fields = ('name', 'year', 'description', 'category', 'genre')
+
+    def create(self, validated_data):
+        genres = validated_data.pop('genre')
+        title = Titles.objects.create(**validated_data)
+        for genre in genres:
+            current_genre, status = Genres.objects.get(**genre)
+            GenreTitle.objects.create(
+                genre=current_genre, title=title
+            )
+        return title
+
+    def update(self, instance, validated_data):
+        instance.name = validated_data.get('name', instance.name)
+        instance.year = validated_data.get('year', instance.year)
+        instance.category = validated_data.get('category', instance.category)
+        instance.description = validated_data.get('description',
+                                                  instance.description)
+        instance.save()
+        return instance
+
+    def validate_year(self, value):
+        year = dt.date.today().year
+        if value > year:
+            raise serializers.ValidationError('Проверьте год выпуска!')
+        return value
