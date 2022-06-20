@@ -23,7 +23,6 @@ class User(AbstractUser):
         ('user', 'user'),
         ('moderator', 'moderator',),
         ('admin', 'admin'),
-        ('AnonymousUser', 'AnonymousUser'),
     )
     email = models.EmailField(
         max_length=254,

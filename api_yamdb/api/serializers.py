@@ -1,4 +1,4 @@
-from django.shortcuts import get_object_or_404
+import datetime as dt
 
 from rest_framework import serializers
 
@@ -78,8 +78,8 @@ class TitleSerializer(serializers.ModelSerializer):
         genres = validated_data.pop('genre')
         title = Titles.objects.create(**validated_data)
         for genre in genres:
-            current_genre = get_object_or_404(Genres, **genre)
-            GenreTitle.objects.get_or_create(
+            current_genre, status = Genres.objects.get(**genre)
+            GenreTitle.objects.create(
                 genre=current_genre, title=title
             )
         return title
@@ -87,9 +87,14 @@ class TitleSerializer(serializers.ModelSerializer):
     def update(self, instance, validated_data):
         instance.name = validated_data.get('name', instance.name)
         instance.year = validated_data.get('year', instance.year)
-        # instance.genre = validated_data.get('genre', instance.genre)
         instance.category = validated_data.get('category', instance.category)
         instance.description = validated_data.get('description',
                                                   instance.description)
         instance.save()
         return instance
+
+    def validate_year(self, value):
+        year = dt.date.today().year
+        if value > year:
+            raise serializers.ValidationError('Проверьте год выпуска!')
+        return value
