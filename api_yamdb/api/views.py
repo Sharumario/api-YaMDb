@@ -2,8 +2,8 @@ import random
 
 from django.core.mail import send_mail
 from django.shortcuts import get_object_or_404
-
-from rest_framework import status
+from django_filters.rest_framework import DjangoFilterBackend
+from rest_framework import filters, status, viewsets
 from rest_framework.decorators import action, api_view
 from rest_framework.filters import SearchFilter
 from rest_framework.permissions import IsAuthenticated
@@ -11,16 +11,20 @@ from rest_framework.response import Response
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework.viewsets import ModelViewSet
 
-from api.permissions import IsAdmin, OwnerOrReadOnly
+from api.permissions import IsAdmin, OwnerOrReadOnly, ReadOnly
 from api.serializers import (
+    CategoriesSerializer,
     CommentSerializer,
+    GenreSerializer,
     ProfileSerializer,
     ReviewSerializer,
     SignupSerializer,
+    TitleSerializer,
     TokenSerializer,
     UserSerializer
 )
-from reviews.models import Review, Title
+from reviews.models import Categories, Genres, Review, Title
+from reviews.mixins import ListCreateDestroyViewSet
 from users.models import User
 
 
@@ -44,11 +48,11 @@ class UserViewSet(ModelViewSet):
             )
             if serializer.is_valid():
                 serializer.save()
-                return Response(serializer.data, status=status.HTTP_200_OK)
-            return Response(serializer.data,
+                return Response(serializer.data)
+            return Response(serializer.errors,
                             status=status.HTTP_400_BAD_REQUEST)
         serializer = ProfileSerializer(user)
-        return Response(serializer.data, status=status.HTTP_200_OK)
+        return Response(serializer.data)
 
 
 @api_view(['POST'])
@@ -66,21 +70,20 @@ def signup(request):
                 exclude(confirmation_code__exact='').exists()):
             return Response('Это имя пользователя уже используются',
                             status=status.HTTP_400_BAD_REQUEST)
-        user, created = User.objects.get_or_create(
+        user, _ = User.objects.get_or_create(
             username=username,
             email=email
         )
         user.confirmation_code = confirmation_code
         user.save()
-        if created or user.confirmation_code is not None:
-            send_mail(
-                'Код подтверждения YaMDb',
-                f'Ваш код подтверждения: {confirmation_code}',
-                'signup@yamdb.com',
-                [email],
-                fail_silently=False
-            )
-            return Response(serializer.data, status=status.HTTP_200_OK)
+        send_mail(
+            'Код подтверждения YaMDb',
+            f'Ваш код подтверждения: {confirmation_code}',
+            'signup@yamdb.com',
+            [email],
+            fail_silently=False
+        )
+        return Response(serializer.data)
     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
@@ -124,3 +127,44 @@ class CommentViewSet(ReviewViewSet):
     def perform_create(self, serializer):
         review = get_object_or_404(Review, id=self.kwargs.get('review_id'))
         serializer.save(author=self.request.user, review=review)
+
+
+class CategoriesViewSet(ListCreateDestroyViewSet):
+    queryset = Categories.objects.all()
+    serializer_class = CategoriesSerializer
+    permission_classes = (IsAdmin,)
+    filter_backends = (filters.SearchFilter,)
+    search_fields = ('name',)
+    lookup_field = 'slug'
+
+    def get_permissions(self):
+        if self.action == 'list':
+            return (ReadOnly(),)
+        return super().get_permissions()
+
+
+class GenreViewSet(ListCreateDestroyViewSet):
+    queryset = Genres.objects.all()
+    serializer_class = GenreSerializer
+    permission_classes = (IsAdmin,)
+    filter_backends = (filters.SearchFilter,)
+    search_fields = ('name',)
+    lookup_field = 'slug'
+
+    def get_permissions(self):
+        if self.action == 'list':
+            return (ReadOnly(),)
+        return super().get_permissions()
+
+
+class TitleViewSet(viewsets.ModelViewSet):
+    queryset = Titles.objects.all()
+    serializer_class = TitleSerializer
+    permission_classes = (IsAdmin,)
+    filter_backends = (DjangoFilterBackend,)
+    filterset_fields = ('category', 'genre', 'name', 'year')
+
+    def get_permissions(self):
+        if self.action == 'retrieve' or 'list':
+            return (ReadOnly(),)
+        return super().get_permissions()

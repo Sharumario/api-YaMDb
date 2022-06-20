@@ -1,3 +1,5 @@
+import datetime as dt
+
 from django.shortcuts import get_object_or_404
 from rest_framework.serializers import (
     CharField,
@@ -9,6 +11,7 @@ from rest_framework.serializers import (
 
 from reviews.models import Comment, Review, Title
 from users.models import User
+from reviews.models import Categories, Genres, Titles, GenreTitle
 
 
 class ProfileSerializer(ModelSerializer):
@@ -76,3 +79,55 @@ class CommentSerializer:
         model = Comment
         fields = ('id', 'text', 'author', 'pub_date')
         read_only_fields = ('id', 'author', 'pub_date')
+
+class CategoriesSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = Categories
+        fields = ('name', 'slug')
+        lookup_field = 'slug'
+
+
+class GenreSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = Genres
+        fields = ('name', 'slug')
+        lookup_field = 'slug'
+
+
+class TitleSerializer(serializers.ModelSerializer):
+    category = serializers.SlugRelatedField(
+        slug_field='slug',
+        queryset=Categories.objects.all()
+    )
+    genre = GenreSerializer(many=True)
+
+    class Meta:
+        model = Titles
+        fields = ('name', 'year', 'description', 'category', 'genre')
+
+    def create(self, validated_data):
+        genres = validated_data.pop('genre')
+        title = Titles.objects.create(**validated_data)
+        for genre in genres:
+            current_genre, status = Genres.objects.get(**genre)
+            GenreTitle.objects.create(
+                genre=current_genre, title=title
+            )
+        return title
+
+    def update(self, instance, validated_data):
+        instance.name = validated_data.get('name', instance.name)
+        instance.year = validated_data.get('year', instance.year)
+        instance.category = validated_data.get('category', instance.category)
+        instance.description = validated_data.get('description',
+                                                  instance.description)
+        instance.save()
+        return instance
+
+    def validate_year(self, value):
+        year = dt.date.today().year
+        if value > year:
+            raise serializers.ValidationError('Проверьте год выпуска!')
+        return value
