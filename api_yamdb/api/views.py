@@ -3,28 +3,36 @@ import random
 from django.core.mail import send_mail
 from django.shortcuts import get_object_or_404
 from django_filters.rest_framework import DjangoFilterBackend
-
 from rest_framework import filters, status, viewsets
 from rest_framework.decorators import action, api_view
+from rest_framework.filters import SearchFilter
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework_simplejwt.tokens import RefreshToken
+from rest_framework.viewsets import ModelViewSet
 
-from reviews.models import Categories, Genres, Titles
-from .mixins import ListCreateDestroyViewSet
+from api.permissions import IsAdmin, OwnerOrReadOnly, ReadOnly
+from api.serializers import (
+    CategoriesSerializer,
+    CommentSerializer,
+    GenreSerializer,
+    ProfileSerializer,
+    ReviewSerializer,
+    SignupSerializer,
+    TitleSerializer,
+    TokenSerializer,
+    UserSerializer
+)
+from reviews.models import Categories, Genres, Review, Title
+from reviews.mixins import ListCreateDestroyViewSet
 from users.models import User
-from .permissions import IsAdmin, ReadOnly
-from .serializers import (ProfileSerializer, UserSerializer,
-                          SignupSerializer, TokenSerializer,
-                          CategoriesSerializer, GenreSerializer,
-                          TitleSerializer)
 
 
-class UserViewSet(viewsets.ModelViewSet):
+class UserViewSet(ModelViewSet):
     queryset = User.objects.all()
     serializer_class = UserSerializer
     permission_classes = (IsAuthenticated, IsAdmin)
-    filter_backends = (filters.SearchFilter,)
+    filter_backends = (SearchFilter,)
     search_fields = ('username',)
     lookup_field = 'username'
 
@@ -90,6 +98,35 @@ def token(request):
                 status=status.HTTP_201_CREATED
             )
     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+class ReviewViewSet(ModelViewSet):
+    """Вьюсет для отзывов на произведения."""
+    serializer_class = ReviewSerializer
+    permission_classes = OwnerOrReadOnly
+    filter_backends = (SearchFilter,)
+    search_fields = ('text',)
+
+    def get_queryset(self):
+        title = get_object_or_404(Title, id=self.kwargs.get('title_id'))
+        return Review.objects.filter(title=title.id)
+
+    def perform_create(self, serializer):
+        title = get_object_or_404(Title, id=self.kwargs.get('title_id'))
+        serializer.save(author=self.request.user, title=title)
+
+
+class CommentViewSet(ReviewViewSet):
+    """Вьюсет для комментриев к отзыву."""
+    serializer_class = CommentSerializer
+
+    def get_queryset(self):
+        review = get_object_or_404(Review, id=self.kwargs.get('review_id'))
+        return Review.objects.filter(review=review.id)
+
+    def perform_create(self, serializer):
+        review = get_object_or_404(Review, id=self.kwargs.get('review_id'))
+        serializer.save(author=self.request.user, review=review)
 
 
 class CategoriesViewSet(ListCreateDestroyViewSet):
