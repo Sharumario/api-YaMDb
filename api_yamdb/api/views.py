@@ -2,6 +2,7 @@ import random
 
 from django.core.mail import send_mail
 from django.shortcuts import get_object_or_404
+from django_filters.rest_framework import DjangoFilterBackend
 
 from rest_framework import filters, status, viewsets
 from rest_framework.decorators import action, api_view
@@ -12,11 +13,11 @@ from rest_framework_simplejwt.tokens import RefreshToken
 from reviews.models import Categories, Genres, Titles
 from .mixins import ListCreateDestroyViewSet
 from users.models import User
-from .permissions import IsAdmin
+from .permissions import IsAdmin, ReadOnly
 from .serializers import (ProfileSerializer, UserSerializer,
                           SignupSerializer, TokenSerializer,
-                          CategoriesSerializer)
-                          
+                          CategoriesSerializer, GenreSerializer,
+                          TitleSerializer)
 
 
 class UserViewSet(viewsets.ModelViewSet):
@@ -90,10 +91,39 @@ def token(request):
 class CategoriesViewSet(ListCreateDestroyViewSet):
     queryset = Categories.objects.all()
     serializer_class = CategoriesSerializer
+    permission_classes = (IsAdmin,)
     filter_backends = (filters.SearchFilter,)
     search_fields = ('name',)
+    lookup_field = 'slug'
 
-    def perform_destroy(self, instance):
-        slug = self.kwargs.get('slug')
-        instance = self.get_object(slug=slug)
-        super().perform_destroy(instance)
+    def get_permissions(self):
+        if self.action == 'list':
+            return (ReadOnly(),)
+        return super().get_permissions()
+
+
+class GenreViewSet(ListCreateDestroyViewSet):
+    queryset = Genres.objects.all()
+    serializer_class = GenreSerializer
+    permission_classes = (IsAdmin,)
+    filter_backends = (filters.SearchFilter,)
+    search_fields = ('name',)
+    lookup_field = 'slug'
+
+    def get_permissions(self):
+        if self.action == 'list':
+            return (ReadOnly(),)
+        return super().get_permissions()
+
+
+class TitleViewSet(viewsets.ModelViewSet):
+    queryset = Titles.objects.all()
+    serializer_class = TitleSerializer
+    # permission_classes = (IsAdmin,)
+    filter_backends = (DjangoFilterBackend,)
+    filterset_fields = ('category', 'genre', 'name', 'year')
+
+    def get_permissions(self):
+        if self.action == 'retrieve' or 'list':
+            return (ReadOnly(),)
+        return super().get_permissions()

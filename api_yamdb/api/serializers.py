@@ -1,7 +1,9 @@
+from django.shortcuts import get_object_or_404
+
 from rest_framework import serializers
 
 from users.models import User
-from reviews.models import Categories, Genres, Titles
+from reviews.models import Categories, Genres, Titles, GenreTitle
 
 
 class ProfileSerializer(serializers.ModelSerializer):
@@ -50,3 +52,44 @@ class CategoriesSerializer(serializers.ModelSerializer):
     class Meta:
         model = Categories
         fields = ('name', 'slug')
+        lookup_field = 'slug'
+
+
+class GenreSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = Genres
+        fields = ('name', 'slug')
+        lookup_field = 'slug'
+
+
+class TitleSerializer(serializers.ModelSerializer):
+    category = serializers.SlugRelatedField(
+        slug_field='slug',
+        queryset=Categories.objects.all()
+    )
+    genre = GenreSerializer(many=True)
+
+    class Meta:
+        model = Titles
+        fields = ('name', 'year', 'description', 'category', 'genre')
+
+    def create(self, validated_data):
+        genres = validated_data.pop('genre')
+        title = Titles.objects.create(**validated_data)
+        for genre in genres:
+            current_genre = get_object_or_404(Genres, **genre)
+            GenreTitle.objects.get_or_create(
+                genre=current_genre, title=title
+            )
+        return title
+
+    def update(self, instance, validated_data):
+        instance.name = validated_data.get('name', instance.name)
+        instance.year = validated_data.get('year', instance.year)
+        # instance.genre = validated_data.get('genre', instance.genre)
+        instance.category = validated_data.get('category', instance.category)
+        instance.description = validated_data.get('description',
+                                                  instance.description)
+        instance.save()
+        return instance
