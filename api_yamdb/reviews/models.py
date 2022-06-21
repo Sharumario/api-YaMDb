@@ -1,24 +1,17 @@
+from django.contrib.auth import get_user_model
 from django.core.validators import MaxValueValidator, MinValueValidator
 from django.db import models
 
-from users.models import User
-
-
-# class CreatedModel(models.Model):
-#     """Абстрактная модель. Добавляет дату создания."""
-#     pub_date = models.DateTimeField(
-#         auto_now_add=True,
-#         verbose_name='Дата создания',
-#         help_text='Указывается автоматически при создании'
-#     )
-
-#     class Meta:
-#         abstract = True
+User = get_user_model()
 
 
 class Category(models.Model):
     name = models.CharField(max_length=256)
     slug = models.SlugField(max_length=50, unique=True)
+
+    class Meta:
+        verbose_name = 'Категория'
+        verbose_name_plural = 'Категории'
 
     def __str__(self):
         return self.slug
@@ -27,6 +20,10 @@ class Category(models.Model):
 class Genre(models.Model):
     name = models.CharField(max_length=256)
     slug = models.SlugField(max_length=50, unique=True)
+
+    class Meta:
+        verbose_name = 'Жанр'
+        verbose_name_plural = 'Жанры'
 
     def __str__(self):
         return self.slug
@@ -48,12 +45,15 @@ class Title(models.Model):
         null=True
     )
 
+    class Meta:
+        verbose_name = 'Произведение'
+        verbose_name_plural = 'Произведения'
+
     def __str__(self):
         return self.name
 
 
 class Review(models.Model):
-    """Модель для отзывов на произведения."""
     text = models.TextField(
         verbose_name='Текст отзыва',
         help_text='Введите текст отзыва')
@@ -98,7 +98,6 @@ class Review(models.Model):
 
 
 class Comment(models.Model):
-    """Модель для комментариев на отзывы."""
     text = models.TextField(
         verbose_name='Текст комментария',
         help_text='Введите текст комментария'
@@ -133,8 +132,16 @@ class Comment(models.Model):
 
 class GenreTitle(models.Model):
     genre = models.ForeignKey(
-        Genre, on_delete=models.CASCADE
+        Genre,
+        on_delete=models.CASCADE,
+        verbose_name='Жанр'
     )
     title = models.ForeignKey(
-        Title, on_delete=models.CASCADE
+        Title,
+        on_delete=models.CASCADE,
+        verbose_name='Произведение'
     )
+
+    class Meta:
+        verbose_name = 'Жанр - Произведение'
+        verbose_name_plural = 'Жанр - Произведения'

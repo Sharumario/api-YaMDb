@@ -1,7 +1,5 @@
 import datetime as dt
 
-from django.shortcuts import get_object_or_404
-
 from rest_framework import relations, serializers
 
 from reviews.models import (
@@ -33,8 +31,8 @@ class SignupSerializer(serializers.Serializer):
 
     def validate_username(self, value):
         if value == 'me':
-            raise serializers.ValidationError('Использовать имя "me"'
-                                              ' запрещено')
+            raise serializers.ValidationError('Использовать имя "me" '
+                                              'запрещено')
         return value
 
 
@@ -56,7 +54,6 @@ class UserSerializer(serializers.ModelSerializer):
 
 
 class ReviewSerializer(serializers.ModelSerializer):
-    """Сериализатор для отзывов."""
     author = relations.SlugRelatedField(
         slug_field='username',
         default=serializers.CurrentUserDefault(),
@@ -67,19 +64,19 @@ class ReviewSerializer(serializers.ModelSerializer):
         model = Review
         fields = ('id', 'text', 'author', 'score', 'pub_date')
 
-    # def validate(self, data):
-    #     title_id = self.context.get('request').kwargs.get('title_id')
-    #     title = get_object_or_404(Title, id=title_id)
-    #     author = self.context.get('request').user
-    #     if Review.objects.get(title=title, author=author):
-    #         raise serializers.ValidationError((
-    #             'Пользователь может написать только один отзыв '
-    #             'на каждое произведение'))
-    #     return data
+    def validate(self, data):
+        title_id = (self.context.get('request').parser_context.
+                    get('kwargs').get('title_id'))
+        author = self.context.get('request').user
+        if self.context.get('request').method == 'POST':
+            if Review.objects.filter(title=title_id, author=author).exists():
+                raise serializers.ValidationError((
+                    'Пользователь может написать только один отзыв '
+                    'на каждое произведение'))
+        return data
 
 
 class CommentSerializer(serializers.ModelSerializer):
-    """Сериализатор для комментриев к отзывам."""
     author = relations.SlugRelatedField(
         slug_field='username',
         read_only=True
@@ -88,7 +85,6 @@ class CommentSerializer(serializers.ModelSerializer):
     class Meta:
         model = Comment
         fields = ('id', 'text', 'author', 'pub_date')
-        # read_only_fields = ('id', 'author', 'pub_date')
 
 
 class CategorySerializer(serializers.ModelSerializer):
@@ -108,14 +104,11 @@ class GenreSerializer(serializers.ModelSerializer):
 class TitleReadSerializer(serializers.ModelSerializer):
     category = CategorySerializer(read_only=True)
     genre = GenreSerializer(many=True, required=False)
-    rating = serializers.IntegerField(read_only=True)
+    rating = serializers.FloatField(read_only=True)
 
     class Meta:
         model = Title
-        fields = ('id', 'name', 'year', 'rating',
-                  'description', 'genre', 'category')
-        read_only_fields = ('id', 'name', 'year', 'rating',
-                            'description', 'genre', 'category')
+        fields = '__all__'
 
 
 class TitleSerializer(serializers.ModelSerializer):
