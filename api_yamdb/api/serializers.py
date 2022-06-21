@@ -1,6 +1,9 @@
 import datetime as dt
 
+from enum import unique
+
 from django.shortcuts import get_object_or_404
+
 from rest_framework import relations, serializers
 
 from reviews.models import (
@@ -95,7 +98,6 @@ class CategorySerializer(serializers.ModelSerializer):
     class Meta:
         model = Category
         fields = ('name', 'slug')
-        # lookup_field = 'slug'
 
 
 class GenreSerializer(serializers.ModelSerializer):
@@ -103,18 +105,12 @@ class GenreSerializer(serializers.ModelSerializer):
     class Meta:
         model = Genre
         fields = ('name', 'slug')
-        # lookup_field = 'slug'
 
 
-class TitleViewSerializer(serializers.ModelSerializer):
-    # category = serializers.SlugRelatedField(
-    #     slug_field='slug',
-    #     many=False,
-    #     queryset=Category.objects.all()
-    # )
-    category = CategorySerializer(many=False)
+class TitleReadSerializer(serializers.ModelSerializer):
+    category = CategorySerializer(read_only=True)
     genre = GenreSerializer(many=True, required=False)
-    rating = serializers.IntegerField()
+    rating = serializers.IntegerField(read_only=True)
 
     class Meta:
         model = Title
@@ -133,33 +129,14 @@ class TitleSerializer(serializers.ModelSerializer):
     genre = serializers.SlugRelatedField(
         slug_field='slug',
         many=True,
-        required=False,
         queryset=Genre.objects.all()
     )
+    rating = serializers.IntegerField(required=False)
 
     class Meta:
         model = Title
-        # fields = ('name', 'year', 'description', 'genre', 'category')
-        fields = '__all__'
-
-    # def create(self, validated_data):
-    #     genres = validated_data.pop('genre')
-    #     title = Title.objects.create(**validated_data)
-    #     for genre in genres:
-    #         current_genre, status = Genre.objects.get(**genre)
-    #         GenreTitle.objects.create(
-    #             genre=current_genre, title=title
-    #         )
-    #     return title
-
-    # def update(self, instance, validated_data):
-    #     instance.name = validated_data.get('name', instance.name)
-    #     instance.year = validated_data.get('year', instance.year)
-    #     instance.category = validated_data.get('category', instance.category)
-    #     instance.description = validated_data.get('description',
-    #                                               instance.description)
-    #     instance.save()
-    #     return instance
+        fields = ('id', 'name', 'year', 'rating',
+                  'description', 'genre', 'category')
 
     def validate_year(self, value):
         year = dt.date.today().year

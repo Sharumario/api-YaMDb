@@ -4,6 +4,7 @@ from django.core.mail import send_mail
 from django.db.models import Avg
 from django.shortcuts import get_object_or_404
 from django_filters.rest_framework import DjangoFilterBackend
+
 from rest_framework import filters, status, viewsets
 from rest_framework.decorators import action, api_view
 from rest_framework.filters import SearchFilter
@@ -20,8 +21,8 @@ from api.serializers import (
     ProfileSerializer,
     ReviewSerializer,
     SignupSerializer,
-    TitleViewSerializer,
     TitleSerializer,
+    TitleReadSerializer,
     TokenSerializer,
     UserSerializer
 )
@@ -168,14 +169,14 @@ class TitleViewSet(viewsets.ModelViewSet):
     serializer_class = TitleSerializer
     permission_classes = (IsAuthenticated, IsAdmin)
     filter_backends = (DjangoFilterBackend,)
-    filterset_fields = ('category', 'genre', 'name', 'year')
+    filterset_fields = ('category', 'genre__slug', 'name', 'year')
 
-    # def get_permissions(self):
-    #     if self.action in ('retrieve', 'list'):
-    #         return (ReadOnly(),)
-    #     return super().get_permissions()
+    def get_permissions(self):
+        if self.action in ('retrieve', 'list'):
+            return (ReadOnly(),)
+        return super().get_permissions()
 
     def get_serializer_class(self):
         if self.action in ('retrieve', 'list'):
-            return TitleViewSerializer
+            return TitleReadSerializer
         return TitleSerializer
