@@ -1,7 +1,5 @@
 import datetime as dt
 
-from enum import unique
-
 from django.shortcuts import get_object_or_404
 
 from rest_framework import relations, serializers
@@ -69,15 +67,15 @@ class ReviewSerializer(serializers.ModelSerializer):
         model = Review
         fields = ('id', 'text', 'author', 'score', 'pub_date')
 
-    def validate(self, data):
-        title_id = self.context.get('request').kwargs.get('title_id')
-        title = get_object_or_404(Title, id=title_id)
-        author = self.context.get('request').user
-        if Review.objects.get(title=title, author=author):
-            raise serializers.ValidationError((
-                'Пользователь может написать только один отзыв '
-                'на каждое произведение'))
-        return data
+    # def validate(self, data):
+    #     title_id = self.context.get('request').kwargs.get('title_id')
+    #     title = get_object_or_404(Title, id=title_id)
+    #     author = self.context.get('request').user
+    #     if Review.objects.get(title=title, author=author):
+    #         raise serializers.ValidationError((
+    #             'Пользователь может написать только один отзыв '
+    #             'на каждое произведение'))
+    #     return data
 
 
 class CommentSerializer(serializers.ModelSerializer):
