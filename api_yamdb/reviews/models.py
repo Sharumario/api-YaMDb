@@ -144,4 +144,4 @@ class GenreTitle(models.Model):
 
     class Meta:
         verbose_name = 'Жанр - Произведение'
-        verbose_name_plural = 'Жанр - Произведения'
+        verbose_name_plural = 'Жанры - Произведения'
