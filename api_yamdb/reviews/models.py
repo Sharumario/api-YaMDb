@@ -6,7 +6,8 @@ from django.core.validators import (
 )
 from django.db import models
 
-from reviews.validators import validate_username_is_not_me
+from reviews.validators import (validate_username_is_not_me,
+                                validate_year)
 
 
 class User(AbstractUser):
@@ -78,6 +79,7 @@ class Category(models.Model):
     slug = models.SlugField(max_length=50, unique=True)
 
     class Meta:
+        ordering = ['slug']
         verbose_name = 'Категория'
         verbose_name_plural = 'Категории'
 
@@ -90,6 +92,7 @@ class Genre(models.Model):
     slug = models.SlugField(max_length=50, unique=True)
 
     class Meta:
+        ordering = ['slug']
         verbose_name = 'Жанр'
         verbose_name_plural = 'Жанры'
 
@@ -98,8 +101,8 @@ class Genre(models.Model):
 
 
 class Title(models.Model):
-    name = models.CharField(max_length=50)
-    year = models.IntegerField()
+    name = models.TextField()
+    year = models.IntegerField(validators=(validate_year,))
     description = models.TextField(null=True)
     genre = models.ManyToManyField(
         Genre,
