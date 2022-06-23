@@ -1,8 +1,8 @@
 import datetime as dt
-import re
 
 from rest_framework import relations, serializers
 
+from api.validators import validate_username
 from reviews.models import (
     Category,
     Comment,
@@ -13,7 +13,23 @@ from reviews.models import (
 )
 
 
-class ProfileSerializer(serializers.ModelSerializer):
+class UserBaseModelSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = User
+        fields = ('username', 'email',
+                  'first_name', 'last_name',
+                  'bio', 'role')
+
+    def validate_username(self, value):
+        return validate_username(value)
+
+
+class UserSerializer(UserBaseModelSerializer):
+    pass
+
+
+class ProfileSerializer(UserBaseModelSerializer):
 
     class Meta:
         model = User
@@ -25,36 +41,26 @@ class ProfileSerializer(serializers.ModelSerializer):
 
 class SignupSerializer(serializers.Serializer):
     email = serializers.EmailField(max_length=254, required=True)
-    username = serializers.CharField(max_length=150, required=True)
+    username = serializers.CharField(
+        max_length=150,
+        required=True,
+        validators=[validate_username]
+    )
 
     class Meta:
         fields = ('email', 'username')
 
-    def validate_username(self, value):
-        if value == 'me':
-            raise serializers.ValidationError('Использовать имя "me" '
-                                              'запрещено')
-        if not re.match(r'^[\w.@+-]+$', value):
-            raise serializers.ValidationError(f'Псевдоним {value} содержит '
-                                              'недопустимые символы')
-        return value
-
 
 class TokenSerializer(serializers.Serializer):
-    username = serializers.CharField(max_length=150, required=True)
+    username = serializers.CharField(
+        max_length=150,
+        required=True,
+        validators=[validate_username]
+    )
     confirmation_code = serializers.CharField(max_length=8, required=True)
 
     class Meta:
         fields = ('username', 'confirmation_code')
-
-
-class UserSerializer(serializers.ModelSerializer):
-
-    class Meta:
-        model = User
-        fields = ('username', 'email',
-                  'first_name', 'last_name',
-                  'bio', 'role')
 
 
 class ReviewSerializer(serializers.ModelSerializer):
