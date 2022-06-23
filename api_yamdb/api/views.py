@@ -14,7 +14,6 @@ from rest_framework_simplejwt.tokens import RefreshToken
 from api.mixins import ListCreateDestroyViewSet
 from api.permissions import (
     IsAdmin,
-    IsAdminOrReadOnly,
     OwnerModeratorOrReadOnly,
     ReadOnly
 )
@@ -30,8 +29,7 @@ from api.serializers import (
     TokenSerializer,
     UserSerializer
 )
-from reviews.models import Category, Genre, Title
-from users.models import User
+from reviews.models import Category, Genre, Title, User
 
 
 class UserViewSet(viewsets.ModelViewSet):
@@ -177,7 +175,7 @@ class TitleViewSet(viewsets.ModelViewSet):
     queryset = Title.objects.prefetch_related(
         'category', 'genre').annotate(rating=Avg('reviews__score'))
     serializer_class = TitleSerializer
-    permission_classes = (IsAdminOrReadOnly,)
+    permission_classes = (IsAdmin | ReadOnly,)
     filterset_class = TitleFilter
 
     def get_serializer_class(self):

@@ -1,4 +1,5 @@
 import datetime as dt
+import re
 
 from rest_framework import relations, serializers
 
@@ -7,9 +8,9 @@ from reviews.models import (
     Comment,
     Genre,
     Review,
-    Title
+    Title,
+    User
 )
-from users.models import User
 
 
 class ProfileSerializer(serializers.ModelSerializer):
@@ -33,6 +34,9 @@ class SignupSerializer(serializers.Serializer):
         if value == 'me':
             raise serializers.ValidationError('Использовать имя "me" '
                                               'запрещено')
+        if not re.match(r'^[\w.@+-]+$', value):
+            raise serializers.ValidationError(f'Псевдоним {value} содержит '
+                                              'недопустимые символы')
         return value
 
 
@@ -104,7 +108,7 @@ class GenreSerializer(serializers.ModelSerializer):
 class TitleReadSerializer(serializers.ModelSerializer):
     category = CategorySerializer(read_only=True)
     genre = GenreSerializer(many=True, required=False)
-    rating = serializers.FloatField(read_only=True)
+    rating = serializers.IntegerField(read_only=True)
 
     class Meta:
         model = Title
