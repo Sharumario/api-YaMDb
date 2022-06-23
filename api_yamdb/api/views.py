@@ -136,29 +136,15 @@ class CommentViewSet(viewsets.ModelViewSet):
 class CategoryViewSet(ListCreateDestroyViewSet):
     queryset = Category.objects.all()
     serializer_class = CategorySerializer
-    permission_classes = (IsAuthenticated, IsAdmin)
+    permission_classes = (IsAdmin | ReadOnly,)
     filter_backends = (filters.SearchFilter,)
     search_fields = ('name',)
     lookup_field = 'slug'
 
-    def get_permissions(self):
-        if self.action == 'list':
-            return (ReadOnly(),)
-        return super().get_permissions()
 
-
-class GenreViewSet(ListCreateDestroyViewSet):
+class GenreViewSet(CategoryViewSet):
     queryset = Genre.objects.all()
     serializer_class = GenreSerializer
-    permission_classes = (IsAuthenticated, IsAdmin)
-    filter_backends = (filters.SearchFilter,)
-    search_fields = ('name',)
-    lookup_field = 'slug'
-
-    def get_permissions(self):
-        if self.action == 'list':
-            return (ReadOnly(),)
-        return super().get_permissions()
 
 
 class TitleFilter(rest_filters.FilterSet):

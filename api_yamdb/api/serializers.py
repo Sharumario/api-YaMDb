@@ -112,7 +112,9 @@ class TitleReadSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Title
-        fields = '__all__'
+        fields = ('id', 'name', 'year', 'rating',
+                  'description', 'genre', 'category')
+        read_only_fields = ('__all__',)
 
 
 class TitleSerializer(serializers.ModelSerializer):
@@ -136,5 +138,6 @@ class TitleSerializer(serializers.ModelSerializer):
     def validate_year(self, value):
         year = dt.date.today().year
         if value > year:
-            raise serializers.ValidationError('Проверьте год выпуска!')
+            raise serializers.ValidationError(
+                'Проверьте поле "year", оно не должно быть больше текущего!')
         return value
