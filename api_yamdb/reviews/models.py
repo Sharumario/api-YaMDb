@@ -5,7 +5,6 @@ from django.core.validators import (
     RegexValidator
 )
 from django.db import models
-from django.db.models import Avg
 
 from reviews.validators import (validate_username_is_not_me,
                                 validate_year)
@@ -71,20 +70,26 @@ class User(AbstractUser):
         return self.username
 
 
-class Category(models.Model):
+class AbstractModelWithNameSlug(models.Model):
     name = models.CharField(max_length=256)
     slug = models.SlugField(max_length=50, unique=True)
+
+    class Meta:
+        abstract = True
+
+    def __str__(self):
+        return self.slug
+
+
+class Category(AbstractModelWithNameSlug):
 
     class Meta:
         ordering = ['slug']
         verbose_name = 'Категория'
         verbose_name_plural = 'Категории'
 
-    def __str__(self):
-        return self.slug
 
-
-class Genre(Category):
+class Genre(AbstractModelWithNameSlug):
 
     class Meta:
         verbose_name = 'Жанр'
