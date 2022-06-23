@@ -19,10 +19,9 @@ class Command(BaseCommand):
     help = 'Заполняет базу данных контентом из csv-файлов'
 
     def add_arguments(self, parser):
-        parser.add_argument("file_path", type=str)
+        parser.add_argument('file_path', type=str)
 
-    def handle(self, *args, **options):
-        directory = options["file_path"]
+    def import_users(self, directory):
         try:
             with open(directory + 'users.csv') as datafile:
                 temp_data = []
@@ -43,6 +42,7 @@ class Command(BaseCommand):
         except Exception as err:
             print(PROGRAM_FAILURE.format('User', err))
 
+    def import_categories(self, directory):
         try:
             with open(directory + 'category.csv') as datafile:
                 temp_data = []
@@ -59,6 +59,7 @@ class Command(BaseCommand):
         except Exception as err:
             print(PROGRAM_FAILURE.format('Category', err))
 
+    def import_genres(self, directory):
         try:
             with open(directory + 'genre.csv') as datafile:
                 temp_data = []
@@ -75,6 +76,7 @@ class Command(BaseCommand):
         except Exception as err:
             print(PROGRAM_FAILURE.format('Genre', err))
 
+    def import_titles(self, directory):
         try:
             with open(directory + 'titles.csv') as datafile:
                 temp_data = []
@@ -92,6 +94,7 @@ class Command(BaseCommand):
         except Exception as err:
             print(PROGRAM_FAILURE.format('Title', err))
 
+    def import_reviews(self, directory):
         try:
             with open(directory + 'review.csv') as datafile:
                 temp_data = []
@@ -111,6 +114,7 @@ class Command(BaseCommand):
         except Exception as err:
             print(PROGRAM_FAILURE.format('Review', err))
 
+    def import_comments(self, directory):
         try:
             with open(directory + 'comments.csv') as datafile:
                 temp_data = []
@@ -129,6 +133,7 @@ class Command(BaseCommand):
         except Exception as err:
             print(PROGRAM_FAILURE.format('Comment', err))
 
+    def import_genres_titles(self, directory):
         try:
             with open(directory + 'genre_title.csv') as datafile:
                 temp_data = []
@@ -144,6 +149,14 @@ class Command(BaseCommand):
                 GenreTitle.objects.bulk_create(temp_data)
         except Exception as err:
             print(PROGRAM_FAILURE.format('GenreTitle', err))
-        self.stdout.write(
-            self.style.SUCCESS('Импорт данных завершен')
-        )
+
+    def handle(self, *args, **options):
+        directory = options['file_path']
+        self.import_users(directory)
+        self.import_categories(directory)
+        self.import_genres(directory)
+        self.import_titles(directory)
+        self.import_reviews(directory)
+        self.import_comments(directory)
+        self.import_genres_titles(directory)
+        self.stdout.write(self.style.SUCCESS('Импорт данных завершен'))
