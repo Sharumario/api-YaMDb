@@ -1,6 +1,8 @@
 import random
 
+from django.conf import settings
 from django.core.mail import send_mail
+from django.db import IntegrityError
 from django.db.models import Avg
 from django.shortcuts import get_object_or_404
 from django_filters import rest_framework as rest_filters
@@ -35,7 +37,7 @@ from reviews.models import Category, Genre, Review, Title, User
 class UserViewSet(viewsets.ModelViewSet):
     queryset = User.objects.all()
     serializer_class = UserSerializer
-    permission_classes = (IsAuthenticated, IsAdmin)
+    permission_classes = (IsAdmin,)
     filter_backends = (filters.SearchFilter,)
     search_fields = ('username',)
     lookup_field = 'username'
@@ -50,11 +52,10 @@ class UserViewSet(viewsets.ModelViewSet):
                 data=request.data,
                 partial=True
             )
-            if serializer.is_valid():
-                serializer.save()
-                return Response(serializer.data)
-            return Response(serializer.errors,
-                            status=status.HTTP_400_BAD_REQUEST)
+            serializer.is_valid(raise_exception=True)
+            serializer.save()
+            return Response(serializer.data)
+
         serializer = ProfileSerializer(user)
         return Response(serializer.data)
 
@@ -63,45 +64,46 @@ class UserViewSet(viewsets.ModelViewSet):
 def signup(request):
     serializer = SignupSerializer(data=request.data)
     confirmation_code = ''.join(random.sample('0123456789', 8))
-    if serializer.is_valid():
-        email = serializer.validated_data['email']
-        username = serializer.validated_data['username']
-        if (User.objects.filter(email__iexact=email).
-                exclude(confirmation_code__exact='').exists()):
-            return Response('Этот адрес электронной почты уже используются',
-                            status=status.HTTP_400_BAD_REQUEST)
-        if (User.objects.filter(username__iexact=username).
-                exclude(confirmation_code__exact='').exists()):
-            return Response('Это имя пользователя уже используются',
-                            status=status.HTTP_400_BAD_REQUEST)
+    serializer.is_valid(raise_exception=True)
+    email = serializer.validated_data['email']
+    username = serializer.validated_data['username']
+    try:
         user, _ = User.objects.get_or_create(
             username=username,
             email=email
         )
-        user.confirmation_code = confirmation_code
-        user.save()
-        send_mail(
-            'Код подтверждения YaMDb',
-            f'Ваш код подтверждения: {confirmation_code}',
-            'signup@yamdb.com',
-            [email],
-            fail_silently=False
-        )
-        return Response(serializer.data)
-    return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    except IntegrityError as err:
+        return Response(f'Ошибка регистрации нового пользователя: {err}',
+                        status=status.HTTP_400_BAD_REQUEST)
+
+    user.confirmation_code = confirmation_code
+    user.save()
+    send_mail(
+        'Код подтверждения YaMDb',
+        f'Ваш код подтверждения: {confirmation_code}',
+        settings.EMAIL_SIGNUP,
+        [email],
+        fail_silently=False
+    )
+    return Response(serializer.data)
 
 
 @api_view(['POST'])
 def token(request):
     serializer = TokenSerializer(data=request.data)
-    if serializer.is_valid():
-        user = get_object_or_404(User, username=serializer.data['username'])
-        if serializer.data['confirmation_code'] == user.confirmation_code:
-            return Response(
-                {'token': str(RefreshToken.for_user(user).access_token)},
-                status=status.HTTP_201_CREATED
-            )
-    return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    serializer.is_valid(raise_exception=True)
+    user = get_object_or_404(User, username=serializer.data['username'])
+    if serializer.data['confirmation_code'] == user.confirmation_code:
+        return Response(
+            {'token': str(RefreshToken.for_user(user).access_token)},
+            status=status.HTTP_201_CREATED
+        )
+    return Response(
+        'Неверный код подтверждения - {}'.format(
+            serializer.data['confirmation_code']
+        ),
+        status=status.HTTP_400_BAD_REQUEST
+    )
 
 
 class ReviewViewSet(viewsets.ModelViewSet):
