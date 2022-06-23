@@ -29,7 +29,7 @@ from api.serializers import (
     TokenSerializer,
     UserSerializer
 )
-from reviews.models import Category, Genre, Title, User
+from reviews.models import Category, Genre, Review, Title, User
 
 
 class UserViewSet(viewsets.ModelViewSet):
@@ -107,6 +107,8 @@ def token(request):
 class ReviewViewSet(viewsets.ModelViewSet):
     serializer_class = ReviewSerializer
     permission_classes = (OwnerModeratorOrReadOnly,)
+    filter_backends = (filters.SearchFilter,)
+    search_fields = ('text', 'author')
 
     def get_title(self):
         return get_object_or_404(Title, id=self.kwargs.get('title_id'))
@@ -118,13 +120,11 @@ class ReviewViewSet(viewsets.ModelViewSet):
         serializer.save(author=self.request.user, title=self.get_title())
 
 
-class CommentViewSet(viewsets.ModelViewSet):
+class CommentViewSet(ReviewViewSet):
     serializer_class = CommentSerializer
-    permission_classes = (OwnerModeratorOrReadOnly,)
 
     def get_review(self):
-        title = get_object_or_404(Title, id=self.kwargs.get('title_id'))
-        return title.reviews.get(id=self.kwargs.get('review_id'))
+        return get_object_or_404(Review, id=self.kwargs.get('review_id'))
 
     def get_queryset(self):
         return self.get_review().comments.all()
@@ -158,8 +158,8 @@ class TitleFilter(rest_filters.FilterSet):
 
 
 class TitleViewSet(viewsets.ModelViewSet):
-    queryset = Title.objects.prefetch_related(
-        'category', 'genre').annotate(rating=Avg('reviews__score'))
+    queryset = (Title.objects.prefetch_related('category', 'genre').
+                annotate(rating=Avg('reviews__score')).order_by('rating'))
     serializer_class = TitleSerializer
     permission_classes = (IsAdmin | ReadOnly,)
     filterset_class = TitleFilter
