@@ -69,8 +69,8 @@ python3 manage.py runserver
 
 Разработчики:
 
-[Александр Воробьёв](https://github.com/Alweee/, 'Перейти')
+[Александр Воробьёв](https://github.com/Alweee/)
 
-[Александр Золототрубов](https://github.com/zolototrubov/, 'Перейти')
+[Александр Золототрубов](https://github.com/zolototrubov/)
 
-[Николай Ушаков](https://github.com/northishere78/, 'Перейти')
+[Николай Ушаков](https://github.com/northishere78/)
