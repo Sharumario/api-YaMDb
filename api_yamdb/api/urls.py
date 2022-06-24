@@ -32,11 +32,11 @@ router_v1.register(
     CommentViewSet,
     basename='comment'
 )
+signup_token_urlpatterns = [
+    path('auth/signup/', signup),
+    path('auth/token/', token),
+]
 urlpatterns = [
+    path('v1/', include(signup_token_urlpatterns)),
     path('v1/', include(router_v1.urls)),
 ]
-signup_token_urlpatterns = [
-    path('v1/auth/signup/', signup),
-    path('v1/auth/token/', token),
-]
-urlpatterns += signup_token_urlpatterns
