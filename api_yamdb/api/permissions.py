@@ -8,6 +8,7 @@ class IsAdmin(permissions.BasePermission):
 
 class OwnerModeratorOrReadOnly(permissions.BasePermission):
     def has_permission(self, request, view):
+        # Если этот метод удалить, то не проходят тесты
         return (request.method in permissions.SAFE_METHODS
                 or request.user.is_authenticated)
 
