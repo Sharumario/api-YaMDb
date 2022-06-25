@@ -60,10 +60,10 @@ class ReviewSerializer(serializers.ModelSerializer):
         fields = ('id', 'text', 'author', 'score', 'pub_date')
 
     def validate(self, data):
-        title_id = (self.context.get('request').parser_context.
-                    get('kwargs').get('title_id'))
-        author = self.context.get('request').user
         if self.context.get('request').method == 'POST':
+            title_id = (self.context.get('request').parser_context.
+                        get('kwargs').get('title_id'))
+            author = self.context.get('request').user
             if Review.objects.filter(title=title_id, author=author).exists():
                 raise serializers.ValidationError((
                     'Пользователь может написать только один отзыв '

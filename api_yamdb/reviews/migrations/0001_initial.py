@@ -57,7 +57,8 @@ class Migration(migrations.Migration):
             options={
                 'verbose_name': 'Категория',
                 'verbose_name_plural': 'Категории',
-                'ordering': ['slug'],
+                'ordering': ('name',),
+                'abstract': False,
             },
         ),
         migrations.CreateModel(
@@ -70,6 +71,8 @@ class Migration(migrations.Migration):
             options={
                 'verbose_name': 'Жанр',
                 'verbose_name_plural': 'Жанры',
+                'ordering': ('name',),
+                'abstract': False,
             },
         ),
         migrations.CreateModel(
@@ -104,14 +107,16 @@ class Migration(migrations.Migration):
             fields=[
                 ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
                 ('text', models.TextField(help_text='Введите текст', verbose_name='Текст')),
-                ('pub_date', models.DateTimeField(auto_now_add=True, db_index=True, verbose_name='Дата добавления')),
-                ('score', models.PositiveSmallIntegerField(default=0, help_text='Укажите рейтинг произведения', validators=[django.core.validators.MaxValueValidator(10), django.core.validators.MinValueValidator(1)], verbose_name='Рейтинг')),
-                ('author', models.ForeignKey(help_text='Выберите автора', on_delete=django.db.models.deletion.CASCADE, related_name='review', to=settings.AUTH_USER_MODEL, verbose_name='Автор')),
+                ('pub_date', models.DateTimeField(auto_now_add=True, verbose_name='Дата добавления')),
+                ('score', models.PositiveSmallIntegerField(default=0, help_text='Укажите оценку', validators=[django.core.validators.MaxValueValidator(10), django.core.validators.MinValueValidator(1)], verbose_name='Оценка')),
+                ('author', models.ForeignKey(help_text='Выберите автора', on_delete=django.db.models.deletion.CASCADE, related_name='reviews', to=settings.AUTH_USER_MODEL, verbose_name='Автор')),
                 ('title', models.ForeignKey(help_text='Выберите произведение', on_delete=django.db.models.deletion.CASCADE, related_name='reviews', to='reviews.Title', verbose_name='Произведение')),
             ],
             options={
                 'verbose_name': 'Отзыв',
                 'verbose_name_plural': 'Отзывы',
+                'ordering': ('-pub_date',),
+                'abstract': False,
             },
         ),
         migrations.AddField(
@@ -124,13 +129,15 @@ class Migration(migrations.Migration):
             fields=[
                 ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
                 ('text', models.TextField(help_text='Введите текст', verbose_name='Текст')),
-                ('pub_date', models.DateTimeField(auto_now_add=True, db_index=True, verbose_name='Дата добавления')),
-                ('author', models.ForeignKey(help_text='Выберите автора', on_delete=django.db.models.deletion.CASCADE, related_name='comment', to=settings.AUTH_USER_MODEL, verbose_name='Автор')),
+                ('pub_date', models.DateTimeField(auto_now_add=True, verbose_name='Дата добавления')),
+                ('author', models.ForeignKey(help_text='Выберите автора', on_delete=django.db.models.deletion.CASCADE, related_name='comments', to=settings.AUTH_USER_MODEL, verbose_name='Автор')),
                 ('review', models.ForeignKey(help_text='Выберите отзыв на который будете писать комментарий', on_delete=django.db.models.deletion.CASCADE, related_name='comments', to='reviews.Review', verbose_name='Отзыв')),
             ],
             options={
                 'verbose_name': 'Комментарий',
                 'verbose_name_plural': 'Комментарии',
+                'ordering': ('-pub_date',),
+                'abstract': False,
             },
         ),
         migrations.AddConstraint(

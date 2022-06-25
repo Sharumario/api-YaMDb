@@ -12,9 +12,9 @@ class OwnerModeratorOrReadOnly(permissions.BasePermission):
                 or request.user.is_authenticated)
 
     def has_object_permission(self, request, view, obj):
-        if request.user.is_authenticated:
-            return obj.author == request.user or request.user.is_moderator
-        return request.method in permissions.SAFE_METHODS
+        if request.method in permissions.SAFE_METHODS:
+            return True
+        return obj.author == request.user or request.user.is_moderator
 
 
 class ReadOnly(permissions.BasePermission):
