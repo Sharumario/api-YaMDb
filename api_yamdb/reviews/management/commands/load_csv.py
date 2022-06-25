@@ -12,8 +12,6 @@ from reviews.models import (
     User
 )
 
-INTEGRITY_ERROR = 'Ошибка при импорте данных: {}'
-
 
 class Command(BaseCommand):
     help = 'Заполняет базу данных контентом из csv-файлов'
