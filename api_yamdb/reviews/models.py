@@ -112,7 +112,7 @@ class Title(models.Model):
         verbose_name_plural = 'Произведения'
 
     def __str__(self):
-        return self.name
+        return f'{self.name[:15]} - {self.genre[:15]} - {self.year}'
 
 
 class GenreTitle(models.Model):
@@ -153,7 +153,8 @@ class BaseTextAuthorDate(models.Model):
         ordering = ('-pub_date',)
 
     def __str__(self):
-        return f'{self.pub_date}, {self.author.username} написал(а): "{self.text[:15]}"'
+        return (f'{self.pub_date}, {self.author.username} написал(а): '
+                f'"{self.text[:15]}"')
 
 
 class Review(BaseTextAuthorDate):

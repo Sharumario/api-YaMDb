@@ -156,7 +156,6 @@ class TitleFilter(rest_filters.FilterSet):
     class Meta:
         model = Title
         fields = ('category', 'genre', 'name', 'year')
-        # order_by_field = '-rating'
 
 
 class TitleViewSet(viewsets.ModelViewSet):
