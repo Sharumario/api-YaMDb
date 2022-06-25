@@ -6,7 +6,6 @@ from django.db import IntegrityError
 from django.db.models import Avg
 from django.shortcuts import get_object_or_404
 from django_filters import rest_framework as rest_filters
-
 from rest_framework import filters, status, viewsets
 from rest_framework.decorators import action, api_view
 from rest_framework.permissions import IsAuthenticated
@@ -46,17 +45,15 @@ class UserViewSet(viewsets.ModelViewSet):
             permission_classes=(IsAuthenticated,))
     def profile(self, request):
         user = get_object_or_404(User, username=self.request.user)
-        if request.method == 'PATCH':
-            serializer = ProfileSerializer(
-                user,
-                data=request.data,
-                partial=True
-            )
-            serializer.is_valid(raise_exception=True)
-            serializer.save()
-            return Response(serializer.data)
-
-        serializer = ProfileSerializer(user)
+        if request.method != 'PATCH':
+            return Response(ProfileSerializer(user).data)
+        serializer = ProfileSerializer(
+            user,
+            data=request.data,
+            partial=True
+        )
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
         return Response(serializer.data)
 
 
@@ -72,8 +69,9 @@ def signup(request):
             username=username,
             email=email
         )
-    except IntegrityError as err:
-        return Response(f'Ошибка регистрации нового пользователя: {err}',
+    except IntegrityError:
+        return Response('Адрес электронной почты или '
+                        'имя пользователя уже используются',
                         status=status.HTTP_400_BAD_REQUEST)
 
     user.confirmation_code = confirmation_code
@@ -99,9 +97,7 @@ def token(request):
             status=status.HTTP_201_CREATED
         )
     return Response(
-        'Неверный код подтверждения - {}'.format(
-            serializer.data['confirmation_code']
-        ),
+        'Неверный код подтверждения',
         status=status.HTTP_400_BAD_REQUEST
     )
 
@@ -160,14 +156,21 @@ class TitleFilter(rest_filters.FilterSet):
     class Meta:
         model = Title
         fields = ('category', 'genre', 'name', 'year')
+        # order_by_field = '-rating'
 
 
 class TitleViewSet(viewsets.ModelViewSet):
-    queryset = (Title.objects.prefetch_related('category', 'genre').
-                annotate(rating=Avg('reviews__score')).order_by('rating'))
+    queryset = Title.objects.prefetch_related(
+        'category', 'genre'
+    ).annotate(rating=Avg('reviews__score'))
     serializer_class = TitleSerializer
     permission_classes = (IsAdmin | ReadOnly,)
+    filter_backends = (
+        rest_filters.DjangoFilterBackend,
+        filters.OrderingFilter,
+    )
     filterset_class = TitleFilter
+    ordering = ('-rating',)
 
     def get_serializer_class(self):
         if self.action in ('retrieve', 'list'):
