@@ -44,7 +44,6 @@ class UserViewSet(viewsets.ModelViewSet):
     @action(methods=['get', 'patch'], detail=False, url_path='me',
             permission_classes=(IsAuthenticated,))
     def profile(self, request):
-        # user = get_object_or_404(User, username=self.request.user)
         user = self.request.user
         if request.method != 'PATCH':
             return Response(ProfileSerializer(user).data)
