@@ -101,7 +101,6 @@ class Title(models.Model):
     category = models.ForeignKey(
         Category,
         on_delete=models.SET_NULL,
-        related_name='titles',
         blank=True,
         null=True
     )
@@ -110,6 +109,7 @@ class Title(models.Model):
         ordering = ('name',)
         verbose_name = 'Произведение'
         verbose_name_plural = 'Произведения'
+        default_related_name = '%(class)ss'
 
     def __str__(self):
         return f'{self.name[:15]} - {self.genre[:15]} - {self.year}'
@@ -128,6 +128,7 @@ class GenreTitle(models.Model):
     )
 
     class Meta:
+        default_related_name = '%(class)ss'
         verbose_name = 'Жанр - Произведение'
         verbose_name_plural = 'Жанры - Произведения'
 
@@ -139,7 +140,6 @@ class BaseTextAuthorDate(models.Model):
     author = models.ForeignKey(
         User,
         on_delete=models.CASCADE,
-        related_name='%(class)ss',
         verbose_name='Автор',
         help_text='Выберите автора'
     )
@@ -151,6 +151,7 @@ class BaseTextAuthorDate(models.Model):
     class Meta:
         abstract = True
         ordering = ('-pub_date',)
+        default_related_name = '%(class)ss'
 
     def __str__(self):
         return (f'{self.pub_date}, {self.author.username} написал(а): '
@@ -167,7 +168,6 @@ class Review(BaseTextAuthorDate):
     title = models.ForeignKey(
         Title,
         on_delete=models.CASCADE,
-        related_name='reviews',
         verbose_name='Произведение',
         help_text='Выберите произведение'
     )
@@ -187,7 +187,6 @@ class Comment(BaseTextAuthorDate):
     review = models.ForeignKey(
         Review,
         on_delete=models.CASCADE,
-        related_name='comments',
         verbose_name='Отзыв',
         help_text='Выберите отзыв на который будете писать комментарий'
     )
