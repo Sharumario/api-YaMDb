@@ -97,6 +97,8 @@ def token(request):
             {'token': str(RefreshToken.for_user(user).access_token)},
             status=status.HTTP_201_CREATED
         )
+    user.confirmation_code = ''
+    user.save()
     return Response(
         'Неверный код подтверждения',
         status=status.HTTP_400_BAD_REQUEST
@@ -165,8 +167,12 @@ class TitleViewSet(viewsets.ModelViewSet):
     ).annotate(rating=Avg('reviews__score'))
     serializer_class = TitleSerializer
     permission_classes = (IsAdmin | ReadOnly,)
+    filter_backends = (
+        rest_filters.DjangoFilterBackend,
+        filters.OrderingFilter,
+    )
     filterset_class = TitleFilter
-    order_by = ('-rating',)
+    ordering_fields = ('-rating',)
 
     def get_serializer_class(self):
         if self.action in ('retrieve', 'list'):
