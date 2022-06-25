@@ -22,7 +22,7 @@ class User(AbstractUser):
         verbose_name='Псевдоним'
     )
     email = models.EmailField(
-        max_length=254,
+        max_length=settings.LENGTH_EMAIL_FIELD,
         unique=True,
         verbose_name='Адрес электронной почты'
     )
@@ -47,7 +47,7 @@ class User(AbstractUser):
         verbose_name='Пользовательская роль'
     )
     confirmation_code = models.CharField(
-        max_length=8,
+        max_length=settings.LENGTH_CONFIRMATION_CODE,
         verbose_name='Код подтверждения',
         blank=True
     )

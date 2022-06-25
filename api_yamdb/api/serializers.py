@@ -31,7 +31,10 @@ class ProfileSerializer(UserSerializer):
 
 
 class SignupSerializer(serializers.Serializer):
-    email = serializers.EmailField(max_length=254, required=True)
+    email = serializers.EmailField(
+        max_length=settings.LENGTH_EMAIL_FIELD,
+        required=True
+    )
     username = serializers.CharField(
         max_length=settings.LENGTH_USERNAME_FIELD,
         required=True,
@@ -41,11 +44,14 @@ class SignupSerializer(serializers.Serializer):
 
 class TokenSerializer(serializers.Serializer):
     username = serializers.CharField(
-        max_length=150,
+        max_length=settings.LENGTH_USERNAME_FIELD,
         required=True,
         validators=(validate_username,)
     )
-    confirmation_code = serializers.CharField(max_length=8, required=True)
+    confirmation_code = serializers.CharField(
+        max_length=settings.LENGTH_CONFIRMATION_CODE,
+        required=True
+    )
 
 
 class ReviewSerializer(serializers.ModelSerializer):
@@ -60,14 +66,15 @@ class ReviewSerializer(serializers.ModelSerializer):
         fields = ('id', 'text', 'author', 'score', 'pub_date')
 
     def validate(self, data):
-        if self.context.get('request').method == 'POST':
-            title_id = (self.context.get('request').parser_context.
-                        get('kwargs').get('title_id'))
-            author = self.context.get('request').user
-            if Review.objects.filter(title=title_id, author=author).exists():
-                raise serializers.ValidationError((
-                    'Пользователь может написать только один отзыв '
-                    'на каждое произведение'))
+        if self.context.get('request').method != 'POST':
+            return data
+        title_id = (self.context.get('request').parser_context.
+                    get('kwargs').get('title_id'))
+        author = self.context.get('request').user
+        if Review.objects.filter(title=title_id, author=author).exists():
+            raise serializers.ValidationError((
+                'Пользователь может написать только один отзыв '
+                'на каждое произведение'))
         return data
 
 
@@ -97,9 +104,9 @@ class GenreSerializer(serializers.ModelSerializer):
 
 
 class TitleReadSerializer(serializers.ModelSerializer):
-    category = CategorySerializer(read_only=True)
+    category = CategorySerializer()
     genre = GenreSerializer(many=True, required=False)
-    rating = serializers.IntegerField(read_only=True)
+    rating = serializers.IntegerField()
 
     class Meta:
         model = Title
