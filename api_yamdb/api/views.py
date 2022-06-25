@@ -131,19 +131,19 @@ class CommentViewSet(ReviewViewSet):
         serializer.save(author=self.request.user, review=self.get_review())
 
 
-class BaseListCreateDestroyViewSet(ListCreateDestroyViewSet):
+class BasePermissionAndSearchFilter(ListCreateDestroyViewSet):
     permission_classes = (IsAdmin | ReadOnly,)
     filter_backends = (filters.SearchFilter,)
     search_fields = ('name',)
     lookup_field = 'slug'
 
 
-class CategoryViewSet(BaseListCreateDestroyViewSet):
+class CategoryViewSet(BasePermissionAndSearchFilter):
     queryset = Category.objects.all()
     serializer_class = CategorySerializer
 
 
-class GenreViewSet(BaseListCreateDestroyViewSet):
+class GenreViewSet(BasePermissionAndSearchFilter):
     queryset = Genre.objects.all()
     serializer_class = GenreSerializer
 
