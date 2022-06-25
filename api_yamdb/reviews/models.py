@@ -1,13 +1,9 @@
+from django.conf import settings
 from django.contrib.auth.models import AbstractUser
-from django.core.validators import (
-    MaxValueValidator,
-    MinValueValidator,
-    RegexValidator
-)
+from django.core.validators import MaxValueValidator, MinValueValidator
 from django.db import models
 
-from reviews.validators import (validate_username_is_not_me,
-                                validate_year)
+from reviews.validators import validate_username, validate_year
 
 
 class User(AbstractUser):
@@ -20,11 +16,9 @@ class User(AbstractUser):
         (ADMIN, 'admin'),
     )
     username = models.CharField(
-        max_length=150,
+        max_length=settings.LENGTH_USERNAME_FIELD,
         unique=True,
-        validators=(
-            RegexValidator(regex=r'^[\w.@+-]+$'),
-            validate_username_is_not_me),
+        validators=(validate_username,),
         verbose_name='Псевдоним'
     )
     email = models.EmailField(
@@ -44,10 +38,10 @@ class User(AbstractUser):
     )
     bio = models.TextField(
         blank=True,
-        verbose_name='Биография'
+        verbose_name='О себе'
     )
     role = models.CharField(
-        max_length=max([len(role[0]) for role in ROLE_CHOICES]),
+        max_length=max(len(role) for role, _ in ROLE_CHOICES),
         choices=ROLE_CHOICES,
         default=USER,
         verbose_name='Пользовательская роль'

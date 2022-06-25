@@ -1,8 +1,7 @@
-import datetime as dt
-
+from django.conf import settings
 from rest_framework import relations, serializers
 
-from api.validators import validate_username
+from reviews.validators import validate_username, validate_year
 from reviews.models import (
     Category,
     Comment,
@@ -13,7 +12,7 @@ from reviews.models import (
 )
 
 
-class UserBaseModelSerializer(serializers.ModelSerializer):
+class UserSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = User
@@ -25,42 +24,28 @@ class UserBaseModelSerializer(serializers.ModelSerializer):
         return validate_username(value)
 
 
-class UserSerializer(UserBaseModelSerializer):
-    pass
+class ProfileSerializer(UserSerializer):
 
-
-class ProfileSerializer(UserBaseModelSerializer):
-
-    class Meta:
-        model = User
-        fields = ('username', 'email',
-                  'first_name', 'last_name',
-                  'bio', 'role')
+    class Meta(UserSerializer.Meta):
         read_only_fields = ('role',)
 
 
 class SignupSerializer(serializers.Serializer):
     email = serializers.EmailField(max_length=254, required=True)
     username = serializers.CharField(
-        max_length=150,
+        max_length=settings.LENGTH_USERNAME_FIELD,
         required=True,
-        validators=[validate_username]
+        validators=(validate_username,)
     )
-
-    class Meta:
-        fields = ('email', 'username')
 
 
 class TokenSerializer(serializers.Serializer):
     username = serializers.CharField(
         max_length=150,
         required=True,
-        validators=[validate_username]
+        validators=(validate_username,)
     )
     confirmation_code = serializers.CharField(max_length=8, required=True)
-
-    class Meta:
-        fields = ('username', 'confirmation_code')
 
 
 class ReviewSerializer(serializers.ModelSerializer):
@@ -142,8 +127,4 @@ class TitleSerializer(serializers.ModelSerializer):
                   'description', 'genre', 'category')
 
     def validate_year(self, value):
-        year = dt.date.today().year
-        if value > year:
-            raise serializers.ValidationError(
-                'Проверьте поле "year", оно не должно быть больше текущего!')
-        return value
+        return validate_year(value)
