@@ -44,7 +44,7 @@ class UserViewSet(viewsets.ModelViewSet):
     @action(methods=['get', 'patch'], detail=False, url_path='me',
             permission_classes=(IsAuthenticated,))
     def profile(self, request):
-        user = get_object_or_404(User, username=self.request.user)
+        user = self.request.user
         if request.method != 'PATCH':
             return Response(ProfileSerializer(user).data)
         serializer = ProfileSerializer(
@@ -60,7 +60,6 @@ class UserViewSet(viewsets.ModelViewSet):
 @api_view(['POST'])
 def signup(request):
     serializer = SignupSerializer(data=request.data)
-    confirmation_code = ''.join(random.sample('0123456789', 8))
     serializer.is_valid(raise_exception=True)
     email = serializer.validated_data['email']
     username = serializer.validated_data['username']
@@ -74,11 +73,11 @@ def signup(request):
                         'имя пользователя уже используются',
                         status=status.HTTP_400_BAD_REQUEST)
 
-    user.confirmation_code = confirmation_code
+    user.confirmation_code = ''.join(random.sample('0123456789', 8))
     user.save()
     send_mail(
         'Код подтверждения YaMDb',
-        f'Ваш код подтверждения: {confirmation_code}',
+        f'Ваш код подтверждения: {user.confirmation_code}',
         settings.EMAIL_SIGNUP,
         [email],
         fail_silently=False
@@ -92,6 +91,8 @@ def token(request):
     serializer.is_valid(raise_exception=True)
     user = get_object_or_404(User, username=serializer.data['username'])
     if serializer.data['confirmation_code'] == user.confirmation_code:
+        user.confirmation_code = ''
+        user.save()
         return Response(
             {'token': str(RefreshToken.for_user(user).access_token)},
             status=status.HTTP_201_CREATED
@@ -164,12 +165,8 @@ class TitleViewSet(viewsets.ModelViewSet):
     ).annotate(rating=Avg('reviews__score'))
     serializer_class = TitleSerializer
     permission_classes = (IsAdmin | ReadOnly,)
-    filter_backends = (
-        rest_filters.DjangoFilterBackend,
-        filters.OrderingFilter,
-    )
     filterset_class = TitleFilter
-    ordering = ('-rating',)
+    order_by = ('-rating',)
 
     def get_serializer_class(self):
         if self.action in ('retrieve', 'list'):
