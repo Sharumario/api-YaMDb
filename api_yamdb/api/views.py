@@ -8,7 +8,10 @@ from django.shortcuts import get_object_or_404
 from django_filters import rest_framework as rest_filters
 from rest_framework import filters, status, viewsets
 from rest_framework.decorators import action, api_view
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.permissions import (
+    IsAuthenticated,
+    IsAuthenticatedOrReadOnly
+)
 from rest_framework.response import Response
 from rest_framework_simplejwt.tokens import RefreshToken
 
@@ -85,20 +88,23 @@ def signup(request):
     return Response(serializer.data)
 
 
+def clean_confirmation_code(user):
+    user.confirmation_code = ''
+    user.save()
+
+
 @api_view(['POST'])
 def token(request):
     serializer = TokenSerializer(data=request.data)
     serializer.is_valid(raise_exception=True)
     user = get_object_or_404(User, username=serializer.data['username'])
     if serializer.data['confirmation_code'] == user.confirmation_code:
-        user.confirmation_code = ''
-        user.save()
+        clean_confirmation_code(user)
         return Response(
             {'token': str(RefreshToken.for_user(user).access_token)},
             status=status.HTTP_201_CREATED
         )
-    user.confirmation_code = ''
-    user.save()
+    clean_confirmation_code(user)
     return Response(
         'Неверный код подтверждения',
         status=status.HTTP_400_BAD_REQUEST
@@ -107,7 +113,7 @@ def token(request):
 
 class ReviewViewSet(viewsets.ModelViewSet):
     serializer_class = ReviewSerializer
-    permission_classes = (OwnerModeratorOrReadOnly,)
+    permission_classes = (IsAuthenticatedOrReadOnly, OwnerModeratorOrReadOnly,)
     filter_backends = (filters.SearchFilter,)
     search_fields = ('text', 'author')
 
